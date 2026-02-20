@@ -62,7 +62,7 @@ interface ValidationErrors {
 }
 
 export default function EMICalculator() {
-  const [loanAmount, setLoanAmount] = useState<number | ''>('');
+  const [loanAmount, setLoanAmount] = useState<number>(0);
   const [interestRate, setInterestRate] = useState(6);
   const [tenure, setTenure] = useState(6);
   const [additionalMonths, setAdditionalMonths] = useState(0);
@@ -127,7 +127,7 @@ export default function EMICalculator() {
   // Recalculate EMI when inputs change with debouncing
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (loanAmount !== '' && loanAmount > 0) {
+      if (loanAmount > 0) {
         setCurrentPage(1);
         calculateEMI();
       }
@@ -356,11 +356,11 @@ export default function EMICalculator() {
 
   // Debounced loan amount change handler
   const handleLoanAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? '' : Number(e.target.value);
+    const value = e.target.value === '' ? 0 : Number(e.target.value);
     setLoanAmount(value);
     
     // Only validate if there's a value
-    if (value !== '') {
+    if (value > 0) {
       const error = validateLoanAmount(Number(value));
       setValidationErrors(prev => ({ ...prev, loanAmount: error }));
     } else {
@@ -1188,7 +1188,7 @@ body {
 
   // Use default values when no loan amount is entered - memoize to prevent unnecessary recalculations
   const displayData = useMemo(() => {
-    if (!loanAmount || loanAmount === '' || !emiData) {
+    if (loanAmount <= 0 || !emiData) {
       return {
         emi: 0,
         totalInterest: 0,
@@ -1202,7 +1202,7 @@ body {
 
   // Default to 50/50 split if no loan amount is entered
   const pieData = useMemo(() => {
-    if (!loanAmount || loanAmount === '') {
+    if (loanAmount <= 0) {
       return [
         { name: 'Principal', value: 50, color: '#3b82f6' },
         { name: 'Interest', value: 50, color: '#f97316' }
@@ -1407,7 +1407,7 @@ body {
                 <input
                   id="loanAmount"
                   type="number"
-                  value={loanAmount === '' ? '' : loanAmount}
+                  value={loanAmount || ''}
                   onChange={handleLoanAmountChange}
                   min="0"
                   placeholder="Enter loan amount"
@@ -1424,11 +1424,11 @@ body {
                     min="10000"
                     max="10000000"
                     step="1000"
-                    value={loanAmount === '' ? 0 : loanAmount}
+                    value={loanAmount || 0}
                     onChange={handleLoanAmountChange}
                     className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider-modern loan-slider"
                     style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${loanAmount === '' ? 0 : (Number(loanAmount) - 10000) / (10000000 - 10000) * 100}%, #e5e7eb ${loanAmount === '' ? 0 : (Number(loanAmount) - 10000) / (10000000 - 10000) * 100}%, #e5e7eb 100%)`
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${loanAmount ? (loanAmount - 10000) / (10000000 - 10000) * 100 : 0}%, #e5e7eb ${loanAmount ? (loanAmount - 10000) / (10000000 - 10000) * 100 : 0}%, #e5e7eb 100%)`
                     }}
                   />
                 </div>
@@ -1617,10 +1617,10 @@ body {
               style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.2))' }}
             >
               <h3 className="text-xl font-semibold mb-4 text-black">
-                {loanAmount === '' ? 'Loan Amortization (Example)' : 'Loan Amortization'}
+                {!loanAmount ? 'Loan Amortization (Example)' : 'Loan Amortization'}
               </h3>
               <div className="relative h-64">
-                <Custom3DDonut data={loanAmount === '' ? [
+                <Custom3DDonut data={!loanAmount ? [
                   { name: 'Principal', value: 50, color: '#3b82f6' },
                   { name: 'Interest', value: 50, color: '#f97316' }
                 ] : pieData} />
@@ -1637,10 +1637,10 @@ body {
                 style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.2))' }}
               >
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                  {loanAmount === '' ? 'Loan Balance Over Time (Example)' : 'Loan Balance Over Time'}
+                  {!loanAmount ? 'Loan Balance Over Time (Example)' : 'Loan Balance Over Time'}
                 </h3>
                 <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={loanAmount === '' ? Array(12).fill(0).map((_, i) => ({
+                  <AreaChart data={!loanAmount ? Array(12).fill(0).map((_, i) => ({
                     month: i + 1,
                     principal: 0,
                     interest: 0,
@@ -1694,8 +1694,8 @@ body {
                       stroke="#3b82f6" 
                       strokeWidth={2}
                       fill="url(#principalGradient)" 
-                      fillOpacity={loanAmount === '' ? 0.3 : 1}
-                      strokeDasharray={loanAmount === '' ? '4 2' : '0'}
+                      fillOpacity={!loanAmount ? 0.3 : 1}
+                      strokeDasharray={!loanAmount ? '4 2' : '0'}
                     />
                     <Area 
                       type="monotone" 
@@ -1703,8 +1703,8 @@ body {
                       stroke="#D2232A" 
                       strokeWidth={2}
                       fill="url(#interestGradient)" 
-                      fillOpacity={loanAmount === '' ? 0.3 : 1}
-                      strokeDasharray={loanAmount === '' ? '4 2' : '0'}
+                      fillOpacity={!loanAmount ? 0.3 : 1}
+                      strokeDasharray={!loanAmount ? '4 2' : '0'}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1721,10 +1721,10 @@ body {
                 style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.2))' }}
               >
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">
-                  {loanAmount === '' ? 'Yearly Payment Breakdown (Example)' : 'Yearly Payment Breakdown'}
+                  {!loanAmount ? 'Yearly Payment Breakdown (Example)' : 'Yearly Payment Breakdown'}
                 </h3>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={loanAmount === '' ? Array(12).fill(0).map((_, i) => ({
+                  <BarChart data={!loanAmount ? Array(12).fill(0).map((_, i) => ({
                     year: i + 1,
                     principal: 0,
                     interest: 0
@@ -1770,14 +1770,14 @@ body {
                       dataKey="interest" 
                       stackId="a" 
                       fill="url(#interestBarGradient)" 
-                      fillOpacity={loanAmount === '' ? 0.3 : 1}
+                      fillOpacity={!loanAmount ? 0.3 : 1}
                       radius={[4, 4, 0, 0]}
                     />
                     <Bar 
                       dataKey="principal" 
                       stackId="a" 
                       fill="#3b82f6" 
-                      fillOpacity={loanAmount === '' ? 0.3 : 1}
+                      fillOpacity={!loanAmount ? 0.3 : 1}
                       radius={[4, 4, 0, 0]}
                     />
                   </BarChart>
