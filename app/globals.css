@@ -1,28 +1,378 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* CSS Variables */
+:root{
+  --primary:#0d6efd; --muted:#6b7280; --border:#e6e9ee; --bg:#f6f8fa;
+}
+
+/* Topbar */
+.topbar{background:#1f2d3b;color:#cbd8e6;font-size:13px}
+.topbar-inner{max-width:1200px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:8px 18px;flex-wrap:wrap}
+
+/* Header */
+.main-header{background:#fff;border-bottom:3px solid rgba(13,110,253,0.08);position:sticky;top:0;z-index:120}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:16px;flex-wrap:wrap}
+.brand .logo{height:65px;object-fit:contain}
+.nav{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.nav-link{color:#213547;text-decoration:none;font-weight:600;padding:8px 10px;border-radius:6px;white-space:nowrap}
+.nav-link:hover,.nav-link.active{color:var(--primary)}
+
+/* Mega menu */
+.nav-dropdown{position:relative;display:inline-block}
+.dropdown-toggle{display:flex;align-items:center;gap:4px}
+.mega-menu{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:900px;background:#fff;border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,0.1);padding:20px 25px;display:none;justify-content:space-between;z-index:999}
+.mega-menu .mega-col{display:flex;flex-direction:column;gap:10px;flex:1;min-width:160px}
+.mega-menu a{color:#000;text-decoration:none;font-weight:500;font-size:14px;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;transition:all .15s}
+.mega-menu a:hover{background:rgba(13,110,253,0.08);color:var(--primary)}
+.nav-dropdown:hover .mega-menu{display:flex}
+@media (max-width:950px){.mega-menu{width:95vw;flex-wrap:wrap;justify-content:flex-start}.mega-menu .mega-col{flex:1 1 45%}}
+
+/* Mobile Menu (Hamburger) */
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: #0f2740;
+}
+
+/* Show hamburger and hide full nav on small screens */
+@media (max-width: 900px) {
+  .nav-toggle {
+    display: block;
+  }
+  .nav {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid #eee;
+    padding: 12px 0;
+  }
+  .nav.open {
+    display: flex;
+  }
+  .nav-link {
+    padding: 10px 20px;
+    font-size: 16px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .nav-dropdown .mega-menu {
+    position: relative;
+    box-shadow: none;
+    border: none;
+    width: 100%;
+    background: #fff;
+  }
+}
+
+/* Left-side Mobile Menu */
+@media (max-width: 900px) {
+  .header-inner {
+    justify-content: flex-start;
+    position: relative;
+  }
+
+  .nav-toggle {
+    position: relative;
+    font-size: 24px;
+    margin-right: 12px;
+    color: #0f2740;
+    border: none;
+    background: none;
+    cursor: pointer;
+    z-index: 1100;
+  }
+
+  .nav {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    height: 100%;
+    width: 75%;
+    max-width: 280px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    border-right: 1px solid #e6e9ee;
+    transition: left 0s ease;
+    z-index: 1000;
+  }
+
+  .nav.open {
+    left: 0;
+  }
+
+  .nav-link {
+    font-size: 16px;
+    padding: 12px 10px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .nav-dropdown .mega-menu {
+    position: relative;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    padding: 10px 0;
+  }
+}
+
+/* Disable dropdown on mobile and make Service clickable */
+@media (max-width: 900px) {
+  .nav-dropdown .dropdown-toggle::after {
+    display: none !important;
+  }
+  .nav-dropdown .mega-menu {
+    display: none !important;
+  }
+  .nav-dropdown {
+    position: static !important;
+  }
+  /* Make the Service link behave like a normal link */
+  .nav-dropdown > a.nav-link {
+    pointer-events: auto !important;
+  }
+}
+
+/* Footer Styles */
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 40px;
+  padding: 60px 20px 40px;
+  align-items: start;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.footer-col h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 8px;
+}
+
+.footer-links a {
+  color: #cfe6ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  display: block;
+  padding: 2px 0;
+  font-size: 14px;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.info-item i {
+  color: var(--primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.info-item > div {
+  flex: 1;
+}
+
+.info-item strong {
+  color: #fff;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+
+.info-item div {
+  color: #bcd1e3;
+  font-size: 13px;
+}
+
+.footer-logo {
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 16px;
+  align-self: flex-start;
+  text-align: left;
+}
+
+.footer-col p {
+  color: #bcd1e3;
+  line-height: 1.5;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.social-row {
+  display: flex;
+  gap: 8px;
+}
+
+.social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2f5682;
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.social-icon:hover {
+  background: var(--primary);
+  transform: translateY(-2px);
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-bottom > div:first-child {
+  color: #bcd1e3;
+  font-size: 13px;
+}
+
+.bottom-links {
+  display: flex;
+  gap: 20px;
+}
+
+.bottom-links a {
+  color: #cfe6ff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 13px;
+}
+
+.bottom-links a:hover {
+  color: var(--primary);
+}
+
+.subscribe-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.subscribe-form input {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.subscribe-form input::placeholder {
+  color: rgba(255,255,255,0.5);
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.btn-primary:hover {
+  background: #0b5ed7;
+}
+
+@media (max-width: 1024px) {
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    padding: 40px 20px 30px;
+  }
+  
+  .subscribe-form {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .subscribe-form input {
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  
+  .subscribe-form button {
+    width: 100%;
+  }
+  
+  .footer-bottom {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .bottom-links {
+    justify-content: center;
+  }
 }
 
 /* Modern Slider Styles */
@@ -69,6 +419,20 @@ select {
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
   padding-right: 2.5rem;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Hide default dropdown arrow for IE */
+select::-ms-expand {
+  display: none;
+}
+
+/* Hide default dropdown arrow for Firefox */
+select:-moz-focusring {
+  color: transparent;
+  text-shadow: 0 0 0 #000;
 }
 
 /* Date input styling */
@@ -99,17 +463,17 @@ input, select, button {
   transform: translateZ(0); /* Hardware acceleration */
 }
 
-/* Loan Amount Slider - Blue/Purple */
+/* Loan Amount Slider - Blue Theme */
 .slider-modern.loan-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   cursor: pointer;
-  transition: transform 0.1s ease-out;
-  will-change: transform;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
   transform: translateZ(0); /* Hardware acceleration */
 }
 
@@ -117,23 +481,24 @@ input, select, button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   cursor: pointer;
-  border: none;
-  transition: transform 0.1s ease-out;
-  will-change: transform;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
   transform: translateZ(0); /* Hardware acceleration */
 }
 
-/* Interest Rate Slider - Orange */
+/* Interest Rate Slider - Red Theme */
 .slider-modern.interest-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #f97316, #fb923c);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
   cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
@@ -143,23 +508,26 @@ input, select, button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #f97316, #fb923c);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
   cursor: pointer;
-  border: none;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
 }
 
-/* Tenure Slider - Green */
+/* Tenure Slider - Blue Theme */
 .slider-modern.tenure-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
   cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
@@ -169,23 +537,26 @@ input, select, button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #10b981, #34d399);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
   cursor: pointer;
-  border: none;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
 }
 
-/* Additional Months Slider - Purple */
+/* Additional Months Slider - Blue Theme */
 .slider-modern.months-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #8b5cf6, #a78bfa);
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
   cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
@@ -195,9 +566,10 @@ input, select, button {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(45deg, #8b5cf6, #a78bfa);
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
   cursor: pointer;
-  border: none;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.5);
   transition: transform 0.1s ease-out;
   will-change: transform;
   transform: translateZ(0); /* Hardware acceleration */
@@ -215,13 +587,19 @@ input, select, button {
   .slider-container {
     width: 80% !important; /* Reduced container width */
     max-width: 180px !important; /* Smaller max width */
-    margin: 0 auto !important; /* Center the container */
+    margin: 0 auto !important; /* Center container */
+    height: auto !important; /* Remove fixed height */
+    min-height: auto !important; /* Remove minimum height */
+    max-height: none !important; /* Remove maximum height constraint */
   }
   
   /* Reduce slider width on mobile */
   .slider-modern {
     touch-action: pan-y;
     width: 100% !important; /* Full width within container */
+    height: auto !important; /* Remove any implicit height */
+    min-height: auto !important; /* Remove minimum height */
+    max-height: none !important; /* Remove maximum height */
   }
   
   /* Prevent horizontal scroll on mobile */
@@ -247,6 +625,153 @@ input, select, button {
   }
 }
 
+/* Mobile Slider Styles - Apply only to screens below 768px */
+@media (max-width: 767px) {
+  /* Base slider styling for mobile */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    width: 100%;
+    margin: 4px 0; /* Reduced margin for more compact appearance */
+    height: auto !important; /* Remove any implicit height */
+    min-height: auto !important; /* Remove minimum height */
+    max-height: none !important; /* Remove maximum height */
+  }
+
+  /* Webkit (Chrome/Safari) track styling for mobile */
+  input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 4px; /* Ultra-slim track height */
+    border-radius: 2px;
+    border: none;
+    /* Remove background to allow inline styles to show through */
+  }
+
+  /* Remove specific slider background overrides to allow inline styles */
+
+  /* Webkit thumb styling for mobile */
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; /* Smaller proportional thumb size */
+    height: 16px; /* Smaller proportional thumb size */
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: 2px solid #dc2626; /* Red border matching interest slider */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    margin-top: -6px; /* Center thumb on track */
+    transition: all 0.15s ease;
+  }
+
+  /* Webkit thumb hover state for mobile */
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  }
+
+  /* Webkit thumb active state for mobile */
+  input[type="range"]::-webkit-slider-thumb:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Firefox track styling for mobile */
+  input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 4px; /* Ultra-slim track height */
+    border-radius: 2px;
+    border: none;
+    /* Remove background to allow inline styles to show through */
+  }
+
+  /* Firefox thumb styling for mobile */
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; /* Smaller proportional thumb size */
+    height: 16px; /* Smaller proportional thumb size */
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: 2px solid #dc2626; /* Red border matching interest slider */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    transition: all 0.15s ease;
+  }
+
+  /* Firefox thumb hover state for mobile */
+  input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Firefox thumb active state for mobile */
+  input[type="range"]::-moz-range-thumb:active {
+    transform: scale(0.95);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Firefox focus outline for mobile */
+  input[type="range"]::-moz-focus-outer {
+    border: none;
+  }
+
+  input[type="range"]:focus {
+    outline: none;
+  }
+
+  input[type="range"]:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  input[type="range"]:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2), 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Override desktop slider styles for mobile */
+  .slider-modern.loan-slider::-webkit-slider-thumb,
+  .slider-modern.interest-slider::-webkit-slider-thumb,
+  .slider-modern.tenure-slider::-webkit-slider-thumb,
+  .slider-modern.months-slider::-webkit-slider-thumb {
+    width: 16px !important;
+    height: 16px !important;
+    background: #ffffff !important;
+    border: 2px solid #dc2626 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+    margin-top: -6px !important;
+  }
+
+  .slider-modern.loan-slider::-moz-range-thumb,
+  .slider-modern.interest-slider::-moz-range-thumb,
+  .slider-modern.tenure-slider::-moz-range-thumb,
+  .slider-modern.months-slider::-moz-range-thumb {
+    width: 16px !important;
+    height: 16px !important;
+    background: #ffffff !important;
+    border: 2px solid #dc2626 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Ensure track consistency across all sliders on mobile */
+  .slider-modern.loan-slider::-webkit-slider-runnable-track,
+  .slider-modern.interest-slider::-webkit-slider-runnable-track,
+  .slider-modern.tenure-slider::-webkit-slider-runnable-track,
+  .slider-modern.months-slider::-webkit-slider-runnable-track {
+    height: 4px !important;
+    border-radius: 2px !important;
+    /* Remove background override to allow inline styles to show through */
+  }
+
+  .slider-modern.loan-slider::-moz-range-track,
+  .slider-modern.interest-slider::-moz-range-track,
+  .slider-modern.tenure-slider::-moz-range-track,
+  .slider-modern.months-slider::-moz-range-track {
+    height: 4px !important;
+    border-radius: 2px !important;
+    /* Remove background override to allow inline styles to show through */
+  }
+}
+
 /* Tablet improvements */
 @media (min-width: 641px) and (max-width: 1024px) {
   /* Optimize for tablet touch */
@@ -258,6 +783,35 @@ input, select, button {
   .recharts-wrapper {
     font-size: 0.875rem;
   }
+}
+
+/* Remove borders from pie chart containers */
+.recharts-responsive-container,
+.recharts-wrapper,
+.recharts-pie-chart-wrapper,
+.recharts-bar-chart-wrapper,
+.recharts-area-chart-wrapper {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove borders from motion.div containers */
+motion.div {
+  border: none !important;
+  outline: none !important;
+}
+
+/* No border class for specific containers */
+.no-border {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.no-border * {
+  border: none !important;
+  outline: none !important;
 }
 
 /* High DPI displays */
