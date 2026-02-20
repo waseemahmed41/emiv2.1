@@ -780,8 +780,8 @@ body {
     <!-- Main Content Area -->
     <div class="content">
         ${pageNumber === 1 ? `
-        <!-- EMI Calculator Results -->
-        <h3 style="color: #2f4e73; margin-bottom: 15px; text-align: center;">EMI Amortization Schedule</h3>
+        <!-- T-Homes EMI Checker Results -->
+        <h3 style="color: #2f4e73; margin-bottom: 15px; text-align: center;">T-Homes EMI Amortization Schedule</h3>
         
         <div style="display: flex; gap: 20px; margin-bottom: 20px;">
             <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px;">
@@ -1345,7 +1345,7 @@ body {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 sm:mb-12 text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800"
         >
-          EMI Calculator + Amortization Schedule
+          T-Homes EMI Checker + Amortization Schedule
         </motion.h1>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
@@ -1371,7 +1371,7 @@ body {
                 >
                   <img
                     src="/images/logo/image.png"
-                    alt="EMI Calculator Logo"
+                    alt="T-Homes EMI Checker Logo"
                     className="w-full h-full object-contain rounded-full"
                   />
                 </motion.div>

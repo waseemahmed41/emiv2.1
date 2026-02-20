@@ -1,6 +1,6 @@
-# EMI Calculator 2.0
+# T-Homes EMI Checker
 
-A responsive EMI calculator with amortization schedule and contact form integration.
+A responsive EMI checker with amortization schedule and contact form integration.
 
 ## Features
 - Responsive design for mobile, tablet, and desktop
