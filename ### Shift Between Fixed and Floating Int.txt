@@ -1,0 +1,24 @@
+### Shift Between Fixed and Floating Interest Rates
+The central bank has mandated lenders to allow borrowers to shift from floating rates of interest to fixed interest rates on home loans at the time of the interest reset period. Further, RBI has also instructed the lenders to maintain transparency in disclosing the charges involved in such a transition. These charges are to be clearly communicated in the loan sanction letter and at the time of revision of rates.
+
+### Penal Charges vs Penal Interest
+Under the RBI home loan guidelines 2023, the regulator has instructed banks and other NBFCs to discontinue levying penal interest, over and above existing interest rates, upon loan defaults. The central bank has instead encouraged the lenders to levy penal charges for issues such as late payments and others. However, RBI mandates the imposition of penal charges only after a transparent disclosure of such charges to the customer.
+
+### Prepayment Charges
+As per the latest RBI home loan guidelines, the banks must allow the borrowers to either increase their EMIs or loan tenures and repay the loan in part or full at any point in time. The new home loan rules also guide the banks to ensure that an increase in loan tenure does not lead to negative amortisation. This implies that the interest payments are to be solely included in EMIs and not to be added to the outstanding principal amount or carried forward to the next month.
+
+### Loan to Value Ratio (LTV ratio)
+The [LTV ratio](https://www.urbanmoney.com/blog/loan-to-value-ratio-ltv/) indicates the maximum value of a property that can be financed by a lender. It is a ratio of the sanctioned loan amount to the property’s value. RBI’s home loan rules and regulations allows banks and other lenders to finance property purchases up to a maximum of 90%. RBI also states that additional charges such as the processing fee and stamp duty among others are not to be included in the LTV.
+Check out the available LTV ratio for different brackets of home loan amounts.
+- For home loans worth ₹30 lakhs or less, lenders can offer up to 90% LTV.
+- For home loans between ₹30 lakhs and ₹75 lakhs, lenders can offer up to 80% LTV.
+- For home loans worth ₹75 lakhs or more, lenders can offer up to 75% LTV.
+
+### Repo Rate
+The repo rate refers to the cost of borrowing money from the Reserve Bank of India. The rate is controlled by the central bank in response to the inflationary pressure in the economy. A high repo rate induces the banks to levy higher rates of interest on home loans and vice-versa. The latest rise of the repo rate to 6.5% increased the home loan interest rate by 25 points. Higher interest rates further lead to higher monthly EMIs.
+
+### Loan Tenures
+Home loan tenures refer to the time period within which a borrower is required to repay their principal and interest obligations. As per RBI guidelines for home loans, lenders can extend a home loan for a maximum of 30 years. This period is extendable only in specific circumstances upon due consideration by the lender. Borrowers failing to repay the loan within this time frame stand the risk of losing their property and face other penalties.
+
+### Easier Balance Transfer
+RBI has significantly regulated foreclosure charges in order to ensure smoother refinancing of home loans. Borrowers can now easily transfer their home loans to other lenders to avail of lower interest rates. This move has provided much relief and respite to existing home loan account holders.

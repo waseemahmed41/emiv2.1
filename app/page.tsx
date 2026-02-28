@@ -87,8 +87,69 @@ export default function EMICalculator() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loanServiceType, setLoanServiceType] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showInterestModal, setShowInterestModal] = useState(false);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
-  const [existingEMIs, setExistingEMIs] = useState(0);
+  const [existingEMIs, setExistingEMIs] = useState<number | null>(null);
+
+  // Interest rate information configuration
+  const interestInfo = {
+    'home loan': {
+      range: '7% – 15%',
+      bands: [
+        { color: 'green', text: '7–9% → Prime borrowers, strong CIBIL (750+), salaried profile' },
+        { color: 'yellow', text: '9–12% → Standard floating rate segment' },
+        { color: 'red', text: '12–15% → Higher-risk profile / self-employed' }
+      ]
+    },
+    'personal loan': {
+      range: '10% – 36%',
+      bands: [
+        { color: 'green', text: '10–15% → Excellent credit score, stable salaried applicant' },
+        { color: 'yellow', text: '15–24% → Average credit profile' },
+        { color: 'red', text: '24–36% → Low credit score / fintech NBFC segment' }
+      ]
+    },
+    'car loan': {
+      range: '7% – 20%',
+      bands: [
+        { color: 'green', text: '7–10% → New car, strong credit' },
+        { color: 'yellow', text: '10–15% → Standard borrower' },
+        { color: 'red', text: '15–20% → Used car / lower credit' }
+      ]
+    },
+    'educational loan': {
+      range: '6.5% – 16%',
+      bands: [
+        { color: 'green', text: '6.5–9% → Government schemes / secured education loans / premier institutions' },
+        { color: 'yellow', text: '9–13% → Standard bank education loan segment' },
+        { color: 'red', text: '13–16% → Private lenders / overseas unsecured education loans (Overseas and unsecured education loans generally carry higher interest rates.)' }
+      ]
+    },
+    'business loan': {
+      range: '8% – 24%',
+      bands: [
+        { color: 'green', text: '8–12% → Secured / strong MSME' },
+        { color: 'yellow', text: '12–18% → Standard unsecured MSME' },
+        { color: 'red', text: '18–24% → High-risk lending' }
+      ]
+    },
+    'mortgage loan': {
+      range: '8% – 21%',
+      bands: [
+        { color: 'green', text: '8–12% → Strong collateral profile' },
+        { color: 'yellow', text: '12–17% → Standard secured' },
+        { color: 'red', text: '17–21% → Risk-adjusted pricing' }
+      ]
+    },
+    'loan against property': {
+      range: '8% – 21%',
+      bands: [
+        { color: 'green', text: '8–12% → Prime borrower' },
+        { color: 'yellow', text: '12–17% → Standard LTV cases' },
+        { color: 'red', text: '17–21% → Higher-risk lending' }
+      ]
+    }
+  };
   const [hasEnteredLoanDetails, setHasEnteredLoanDetails] = useState(false);
 
   // Check localStorage on component mount to see if user has already submitted form
@@ -117,9 +178,8 @@ export default function EMICalculator() {
 
   // Handle existing EMIs change
   const handleExistingEMIsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value === '' ? 0 : Number(e.target.value);
-    if (value < 0) value = 0; // Handle negative values
-    setExistingEMIs(value);
+    const value = e.target.value;
+    setExistingEMIs(value === '' ? null : Number(value));
   }, []);
 
   // Handle service type change with default values
@@ -193,8 +253,8 @@ export default function EMICalculator() {
     'educational loan': {
       minAmount: 10000,
       maxAmount: 4000000,
-      minInterest: 4,
-      maxInterest: 15,
+      minInterest: 6.5,
+      maxInterest: 16,
       minTenure: 1,
       maxTenure: 15,
       defaults: {
@@ -227,6 +287,19 @@ export default function EMICalculator() {
         amount: 3000000,
         interest: 12,
         tenure: 10
+      }
+    },
+    'business loan': {
+      minAmount: 50000,
+      maxAmount: 10000000,
+      minInterest: 8,
+      maxInterest: 24,
+      minTenure: 1,
+      maxTenure: 10,
+      defaults: {
+        amount: 500000,
+        interest: 15,
+        tenure: 5
       }
     },
     'custom': {
@@ -424,6 +497,25 @@ export default function EMICalculator() {
       // Could show user-friendly error message here
     }
   }, [loanAmount, interestRate, tenure, additionalMonths, paymentFrequency, startDate]);
+
+  // Helper function to get monthly equivalent EMI for stress calculation
+  const getMonthlyEquivalentEMI = useCallback(() => {
+    if (!emiData) return 0;
+    
+    // Ensure EMI data matches current payment frequency
+    if (emiData.paymentFrequency !== paymentFrequency) {
+      return 0; // Return 0 if data is stale
+    }
+    
+    switch (paymentFrequency) {
+      case 'quarterly':
+        return emiData.emi / 3; // Quarterly EMI divided by 3 for monthly equivalent
+      case 'half-yearly':
+        return emiData.emi / 6; // Half-yearly EMI divided by 6 for monthly equivalent
+      default:
+        return emiData.emi; // Monthly EMI stays the same
+    }
+  }, [emiData, paymentFrequency]);
 
   const handleCalculateFullSchedule = useCallback(() => {
     // Only proceed if we have a valid loan amount
@@ -1047,8 +1139,8 @@ body {
     <!-- Main Content Area -->
     <div class="content">
         ${pageNumber === 1 ? `
-        <!-- T-Homes EMI Checker Results -->
-        <h3 style="color: #2f4e73; margin-bottom: 15px; text-align: center;">T-Homes EMI Amortization Schedule</h3>
+        <!-- T-Home Enterprise EMI Intelligence System -->
+        <h3 style="color: #2f4e73; margin-bottom: 15px; text-align: center;">T-Home Enterprise EMI Amortization Schedule</h3>
         
         <div style="display: flex; gap: 20px; margin-bottom: 20px;">
             <div style="flex: 1; background: #f8f9fa; padding: 15px; border-radius: 8px;">
@@ -1410,7 +1502,10 @@ body {
         )}
         
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-black/80 text-sm">Monthly EMI</p>
+          <p className="text-black/80 text-sm">
+            {paymentFrequency === 'monthly' ? 'Monthly EMI' : 
+             paymentFrequency === 'quarterly' ? 'Quarterly EQI' : 'Half-yearly EHI'}
+          </p>
           <p className="text-black text-2xl font-bold">₹{emiData?.emi.toFixed(0)}</p>
           <p className="text-black/70 text-xs mt-1">{principalPercentage}% Principal</p>
         </div>
@@ -1629,7 +1724,7 @@ body {
           animate={{ opacity: 1, y: 0 }}
           className="text-3xl sm:text-4xl md:text-5xl font-bold text-center mb-8 sm:mb-12 text-gray-800 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800"
         >
-          T-Homes EMI Checker + Amortization Schedule
+          T-Home Enterprise EMI Intelligence System
         </motion.h1>
 
         {/* EMI Calculator Form - Only shown after contact form submission */}
@@ -1657,7 +1752,7 @@ body {
                 >
                   <img
                     src="/images/logo/image.png"
-                    alt="T-Homes EMI Checker Logo"
+                    alt="T-Home Enterprise EMI Intelligence System Logo"
                     className="w-full h-full object-contain rounded-full"
                   />
                 </motion.div>
@@ -1716,13 +1811,14 @@ body {
                   onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base appearance-none cursor-pointer"
                 >
-                  <option value="">Select Service Type</option>
+                  <option value="">Select Loan Type</option>
                   <option value="home loan">Home Loan</option>
                   <option value="personal loan">Personal Loan</option>
                   <option value="car loan">Car Loan</option>
                   <option value="educational loan">Educational Loan</option>
                   <option value="mortgage loan">Mortgage Loan</option>
                   <option value="loan against property">Loan Against Property</option>
+                  <option value="business loan">Business Loan</option>
                   <option value="custom">Custom</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -1793,7 +1889,71 @@ body {
 
             {/* Interest Rate */}
             <div className="mb-6 sm:mb-8">
-              <label htmlFor="interestRate" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Annual Interest Rate (%)</label>
+              <label htmlFor="interestRate" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">
+                Annual Interest Rate (%)
+                <div 
+                  className="inline-block ml-2 relative"
+                  onMouseEnter={() => setShowInterestModal(true)}
+                  onMouseLeave={() => setShowInterestModal(false)}
+                >
+                  <button
+                    type="button"
+                    className="text-gray-600 hover:text-blue-500 transition-colors duration-200 cursor-pointer"
+                    aria-label="Interest rate information"
+                  >
+                    ⓘ
+                  </button>
+                  
+                  {/* Hover Tooltip Modal */}
+                  {showInterestModal && (
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 z-50">
+                      <div className="bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-80 max-w-sm">
+                        {/* Close indicator */}
+                        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-l-transparent border-r-8 border-r-transparent border-b-8 border-b-white"></div>
+                        
+                        {/* Modal Header */}
+                        <div className="mb-4">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-1">
+                            {loanServiceType ? loanServiceType.charAt(0).toUpperCase() + loanServiceType.slice(1) : 'Select Loan Type'}
+                          </h4>
+                          <div className="text-xs text-gray-600">
+                            Range: {loanServiceType && interestInfo[loanServiceType as keyof typeof interestInfo] ? interestInfo[loanServiceType as keyof typeof interestInfo].range : 'Select a loan type'}
+                          </div>
+                        </div>
+
+                        {/* Interest Rate Bands */}
+                        {loanServiceType && interestInfo[loanServiceType as keyof typeof interestInfo] && (
+                          <div className="space-y-2">
+                            {interestInfo[loanServiceType as keyof typeof interestInfo].bands.map((band, index) => (
+                              <div key={index} className="flex items-start space-x-2 p-2 rounded bg-gray-50">
+                                <div 
+                                  className={`w-3 h-3 rounded-full mt-0.5 flex-shrink-0 ${
+                                    band.color === 'green' ? 'bg-green-500' :
+                                    band.color === 'yellow' ? 'bg-yellow-500' :
+                                    'bg-red-500'
+                                  }`}
+                                ></div>
+                                <div className="flex-1">
+                                  <p className="text-xs text-gray-700 leading-tight">
+                                    {band.text}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Disclaimer */}
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-500 text-center">
+                            Actual rates depend on lender policy, RBI regulations, credit score, income profile, and market conditions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </label>
               <div className="relative">
                 <input
                   id="interestRate"
@@ -1970,7 +2130,8 @@ body {
                       id="existingEMIs"
                       type="number"
                       min="0"
-                      value={existingEMIs || ''}
+                      max="999999999"
+                      value={existingEMIs === null ? '' : existingEMIs}
                       onChange={handleExistingEMIsChange}
                       onKeyPress={(e) => {
                         if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
@@ -1978,17 +2139,8 @@ body {
                         }
                       }}
                       placeholder="Enter existing EMI amounts"
-                      className={`w-full px-3 py-2 rounded-lg bg-white border text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm ${
-                        existingEMIs > 0 
-                          ? 'border-green-400 focus:ring-green-400' 
-                          : 'border-gray-300 focus:ring-blue-400'
-                      }`}
+                      className="w-full px-3 py-2 rounded-lg bg-white border text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm border-gray-300 focus:ring-blue-400"
                     />
-                    {existingEMIs > 0 && (
-                      <div className="absolute right-3 top-3">
-                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -2219,38 +2371,38 @@ body {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
                 <span className="mr-2">🧠</span>
                 Your EMI Stress Level:
-                {monthlyIncome > 0 && existingEMIs > 0 && emiData && (
+                {monthlyIncome > 0 && existingEMIs !== null && emiData && (
                   <span className={`ml-2 font-bold ${
-                    ((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 
+                    ((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 < 30 
                       ? 'text-green-600' 
-                      : ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 
+                      : ((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 <= 45 
                         ? 'text-yellow-600' 
                         : 'text-red-600'
                   }`}>
-                    {((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 
+                    {((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 < 30 
                       ? 'Safe 🟢' 
-                      : ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 
+                      : ((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 <= 45 
                         ? 'Manageable 🟡' 
                         : 'Risky 🔴'
                     }
                   </span>
                 )}
               </h3>
-              {monthlyIncome > 0 && existingEMIs > 0 && emiData && (
+              {monthlyIncome > 0 && existingEMIs !== null && emiData && (
                 <div className="text-sm text-gray-600">
-                  EMI Ratio: {(((emiData.emi + existingEMIs) / monthlyIncome) * 100).toFixed(1)}%
-                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 && (
+                  EMI Ratio: {(((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100).toFixed(1)}%
+                  {((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 < 30 && (
                     <span className="text-green-600 ml-2">• Excellent financial health!</span>
                   )}
-                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 >= 30 && ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 && (
+                  {((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 >= 30 && ((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 <= 45 && (
                     <span className="text-yellow-600 ml-2">• Consider reducing loan amount</span>
                   )}
-                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 > 45 && (
+                  {((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 > 45 && (
                     <span className="text-red-600 ml-2">• High debt burden - review carefully</span>
                   )}
                 </div>
               )}
-              {!(monthlyIncome > 0 && existingEMIs > 0) && (
+              {!(monthlyIncome > 0 && existingEMIs !== null) && (
                 <div className="text-sm text-gray-400 italic">
                   Enter your monthly income and existing EMIs to see your EMI stress level
                 </div>
@@ -2445,20 +2597,36 @@ body {
                     </div>
                     <div>
                       <label htmlFor="leadService" className="block text-gray-700 mb-2 font-medium text-sm sm:text-base">Service</label>
-                      <select
-                        id="leadService"
-                        name="leadService"
-                        value={leadForm.service}
-                        onChange={(e) => setLeadForm({ ...leadForm, service: e.target.value })}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                        required
-                      >
-                        <option value="" className="bg-white">Select a service</option>
-                        <option value="personal" className="bg-white">Personal Loan</option>
-                        <option value="home" className="bg-white">Home Loan</option>
-                        <option value="business" className="bg-white">Business Loan</option>
-                        <option value="other" className="bg-white">Other</option>
-                      </select>
+                      <div className="relative">
+                        <select
+                          id="leadService"
+                          name="leadService"
+                          value={leadForm.service}
+                          onChange={(e) => setLeadForm({ ...leadForm, service: e.target.value })}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base appearance-none cursor-pointer"
+                          required
+                        >
+                          <option value="" className="bg-white">Select a service</option>
+                          <option value="home loan" className="bg-white">Home Loan</option>
+                          <option value="personal loan" className="bg-white">Personal Loan</option>
+                          <option value="car loan" className="bg-white">Car Loan</option>
+                          <option value="educational loan" className="bg-white">Educational Loan</option>
+                          <option value="business loan" className="bg-white">Business Loan</option>
+                          <option value="mortgage loan" className="bg-white">Mortgage Loan</option>
+                          <option value="loan against property" className="bg-white">Loan Against Property</option>
+                          <option value="custom" className="bg-white">Custom</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                          <svg 
+                            className="w-4 h-4 text-gray-400 transition-transform duration-200" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
