@@ -607,8 +607,8 @@ export default function EMICalculator() {
     if (!name || name.trim().length < 2) {
       return 'Name must be at least 2 characters long';
     }
-    if (!/^[a-zA-Z\s]+$/.test(name)) {
-      return 'Name can only contain letters and spaces';
+    if (!/^[a-zA-Z\s.]+$/.test(name)) {
+      return 'Name can only contain letters, spaces, and dots';
     }
     return undefined;
   }, []);
@@ -692,8 +692,8 @@ export default function EMICalculator() {
     // Only allow digits
     const digitsOnly = value.replace(/\D/g, '');
     
-    // Update form value
-    setLeadForm({ ...leadForm, phone: digitsOnly });
+    // Update form value using functional update to avoid stale closure
+    setLeadForm(prev => ({ ...prev, phone: digitsOnly }));
     
     // Real-time validation
     const error = validatePhone(digitsOnly);
