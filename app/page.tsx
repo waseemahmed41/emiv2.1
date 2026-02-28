@@ -66,7 +66,7 @@ export default function EMICalculator() {
   const [interestRate, setInterestRate] = useState(6);
   const [tenure, setTenure] = useState(6);
   const [additionalMonths, setAdditionalMonths] = useState(0);
-  const [startDate, setStartDate] = useState('2026-02-12');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentFrequency, setPaymentFrequency] = useState<'monthly' | 'quarterly' | 'half-yearly'>('monthly');
   const [emiData, setEMIData] = useState<EMIData | null>(null);
   const [showLeadForm, setShowLeadForm] = useState(true);
@@ -1449,11 +1449,12 @@ body {
                     key={`cell-${index}`} 
                     fill={`url(#${entry.name.toLowerCase()}Gradient)`}
                     style={{
-                      filter: isHovered ? 'url(#glow)' : 'none',
+                      filter: isHovered ? 'url(#glow) brightness(1.1)' : 'brightness(1)',
                       cursor: 'pointer',
-                      transform: isHovered ? 'scale(1.05)' : 'scale(1)',
+                      transform: isHovered ? 'scale(1.08)' : 'scale(1)',
                       transformOrigin: 'center',
-                      transition: 'all 0.3s ease-in-out'
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      opacity: isHovered ? 1 : 0.95
                     }}
                     onMouseEnter={(e: any) => handleMouseEnter(entry, index, e)}
                     onMouseLeave={handleMouseLeave}
@@ -2051,13 +2052,25 @@ body {
             {/* Start Date */}
             <div className="mb-6 sm:mb-8">
               <label htmlFor="startDate" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Start Date</label>
-              <input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-              />
+              <div className="relative">
+                <input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 pr-10 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg 
+                    className="w-5 h-5 text-gray-400" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              </div>
             </div>
 
             {/* Payment Frequency */}
