@@ -69,7 +69,8 @@ export default function EMICalculator() {
   const [startDate, setStartDate] = useState('2026-02-12');
   const [paymentFrequency, setPaymentFrequency] = useState<'monthly' | 'quarterly' | 'half-yearly'>('monthly');
   const [emiData, setEMIData] = useState<EMIData | null>(null);
-  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [showLeadForm, setShowLeadForm] = useState(true);
+  const [showEMICalculator, setShowEMICalculator] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
   const [leadForm, setLeadForm] = useState<LeadForm>({ name: '', email: '', phone: '', countryCode: '+91', service: '', message: '' });
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -82,6 +83,166 @@ export default function EMICalculator() {
   const [loaderMessage, setLoaderMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [hasSubmittedForm, setHasSubmittedForm] = useState(false);
+  const [phoneValidationError, setPhoneValidationError] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [loanServiceType, setLoanServiceType] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [existingEMIs, setExistingEMIs] = useState(0);
+  const [hasEnteredLoanDetails, setHasEnteredLoanDetails] = useState(false);
+
+  // Check localStorage on component mount to see if user has already submitted form
+  useEffect(() => {
+    const hasSubmittedBefore = localStorage.getItem('thome_emi_form_submitted');
+    if (hasSubmittedBefore === 'true') {
+      setHasSubmittedForm(true);
+      setShowLeadForm(false);
+      setShowEMICalculator(true);
+    }
+  }, []);
+
+  // Track when user enters loan details
+  useEffect(() => {
+    if (loanAmount > 0 || interestRate > 0 || tenure > 0) {
+      setHasEnteredLoanDetails(true);
+    }
+  }, [loanAmount, interestRate, tenure]);
+
+  // Handle monthly income change
+  const handleMonthlyIncomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value === '' ? 0 : Number(e.target.value);
+    if (value < 0) value = 0; // Handle negative values
+    setMonthlyIncome(value);
+  }, []);
+
+  // Handle existing EMIs change
+  const handleExistingEMIsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value === '' ? 0 : Number(e.target.value);
+    if (value < 0) value = 0; // Handle negative values
+    setExistingEMIs(value);
+  }, []);
+
+  // Handle service type change with default values
+  const handleServiceTypeChange = useCallback((serviceType: string) => {
+    setLoanServiceType(serviceType);
+    
+    if (serviceType && serviceType in loanThresholds) {
+      const thresholds = loanThresholds[serviceType as keyof typeof loanThresholds];
+      
+      // Set default values for the selected service type
+      setLoanAmount(thresholds.defaults.amount);
+      setInterestRate(thresholds.defaults.interest);
+      setTenure(thresholds.defaults.tenure);
+      
+      // Clear any validation errors
+      setValidationErrors(prev => ({
+        ...prev,
+        loanAmount: undefined,
+        interestRate: undefined,
+        tenure: undefined
+      }));
+    } else {
+      // Reset to 0 when no service type selected
+      setLoanAmount(0);
+      setInterestRate(0);
+      setTenure(0);
+    }
+  }, []);
+
+  // Threshold configuration for different loan types
+  const loanThresholds = {
+    'home loan': {
+      minAmount: 100000,
+      maxAmount: 50000000,
+      minInterest: 7,
+      maxInterest: 15,
+      minTenure: 5,
+      maxTenure: 30,
+      defaults: {
+        amount: 2500000,
+        interest: 9,
+        tenure: 20
+      }
+    },
+    'personal loan': {
+      minAmount: 10000,
+      maxAmount: 1500000,
+      minInterest: 10,
+      maxInterest: 36,
+      minTenure: 1,
+      maxTenure: 7,
+      defaults: {
+        amount: 200000,
+        interest: 14,
+        tenure: 3
+      }
+    },
+    'car loan': {
+      minAmount: 50000,
+      maxAmount: 4000000,
+      minInterest: 7,
+      maxInterest: 20,
+      minTenure: 1,
+      maxTenure: 7,
+      defaults: {
+        amount: 800000,
+        interest: 11,
+        tenure: 5
+      }
+    },
+    'educational loan': {
+      minAmount: 10000,
+      maxAmount: 4000000,
+      minInterest: 4,
+      maxInterest: 15,
+      minTenure: 1,
+      maxTenure: 15,
+      defaults: {
+        amount: 500000,
+        interest: 9,
+        tenure: 7
+      }
+    },
+    'mortgage loan': {
+      minAmount: 100000,
+      maxAmount: 10000000,
+      minInterest: 8,
+      maxInterest: 21,
+      minTenure: 1,
+      maxTenure: 20,
+      defaults: {
+        amount: 5000000,
+        interest: 12,
+        tenure: 10
+      }
+    },
+    'loan against property': {
+      minAmount: 100000,
+      maxAmount: 700000000,
+      minInterest: 8,
+      maxInterest: 21,
+      minTenure: 1,
+      maxTenure: 20,
+      defaults: {
+        amount: 3000000,
+        interest: 12,
+        tenure: 10
+      }
+    },
+    'custom': {
+      minAmount: 1000,
+      maxAmount: 100000000,
+      minInterest: 1,
+      maxInterest: 40,
+      minTenure: 1,
+      maxTenure: 30,
+      defaults: {
+        amount: 100000,
+        interest: 15,
+        tenure: 5
+      }
+    }
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -277,15 +438,8 @@ export default function EMICalculator() {
     // Calculate EMI first to ensure we have data
     calculateEMI();
     
-    // If form has already been submitted, show schedule directly
-    if (hasSubmittedForm) {
-      setShowSchedule(true);
-      setShowLeadForm(false);
-    } else {
-      // Show lead form for first time
-      setShowLeadForm(true);
-      setShowSchedule(false);
-    }
+    // Show amortization schedule directly since contact form was already submitted
+    setShowSchedule(true);
   }, [loanAmount, calculateEMI, hasSubmittedForm]);
 
   const handleSliderChange = useCallback((value: number, setter: (val: number) => void) => {
@@ -295,24 +449,60 @@ export default function EMICalculator() {
   // Validation functions
   const validateLoanAmount = useCallback((value: number): string | undefined => {
     if (isNaN(value) || value <= 0) {
-      return 'Loan amount must be a positive number';
+      return 'Loan amount must be a positive number greater than 0';
     }
+    
+    // Check thresholds based on service type
+    if (loanServiceType && loanServiceType in loanThresholds) {
+      const thresholds = loanThresholds[loanServiceType as keyof typeof loanThresholds];
+      if (value < thresholds.minAmount) {
+        return `Minimum loan amount for ${loanServiceType} is ₹${thresholds.minAmount.toLocaleString('en-IN')}`;
+      }
+      if (value > thresholds.maxAmount) {
+        return `Maximum loan amount for ${loanServiceType} is ₹${thresholds.maxAmount.toLocaleString('en-IN')}`;
+      }
+    }
+    
     return undefined;
-  }, []);
+  }, [loanServiceType]);
 
   const validateInterestRate = useCallback((value: number): string | undefined => {
-    if (isNaN(value) || value < 0 || value > 20) {
-      return 'Interest rate must be between 0% and 20%';
+    if (isNaN(value) || value < 0) {
+      return 'Interest rate must be a positive number';
     }
+    
+    // Check thresholds based on service type
+    if (loanServiceType && loanServiceType in loanThresholds) {
+      const thresholds = loanThresholds[loanServiceType as keyof typeof loanThresholds];
+      if (value < thresholds.minInterest) {
+        return `Minimum interest rate for ${loanServiceType} is ${thresholds.minInterest}%`;
+      }
+      if (value > thresholds.maxInterest) {
+        return `Maximum interest rate for ${loanServiceType} is ${thresholds.maxInterest}%`;
+      }
+    }
+    
     return undefined;
-  }, []);
+  }, [loanServiceType]);
 
   const validateTenure = useCallback((value: number): string | undefined => {
-    if (isNaN(value) || value < 0 || value > 30) {
-      return 'Tenure must be between 0 and 30 years';
+    if (isNaN(value) || value < 0) {
+      return 'Tenure must be a positive number';
     }
+    
+    // Check thresholds based on service type
+    if (loanServiceType && loanServiceType in loanThresholds) {
+      const thresholds = loanThresholds[loanServiceType as keyof typeof loanThresholds];
+      if (value < thresholds.minTenure) {
+        return `Minimum tenure for ${loanServiceType} is ${thresholds.minTenure} years`;
+      }
+      if (value > thresholds.maxTenure) {
+        return `Maximum tenure for ${loanServiceType} is ${thresholds.maxTenure} years`;
+      }
+    }
+    
     return undefined;
-  }, []);
+  }, [loanServiceType]);
 
   const validateAdditionalMonths = useCallback((value: number): string | undefined => {
     if (isNaN(value) || value < 0 || value > 12) {
@@ -346,27 +536,80 @@ export default function EMICalculator() {
     if (!phone || phone.trim().length === 0) {
       return 'Phone number is required';
     }
-    // Remove all non-digit characters for validation
+    
+    // Remove all non-digit characters
     const digitsOnly = phone.replace(/\D/g, '');
+    
     if (digitsOnly.length !== 10) {
       return 'Phone number must be 10 digits';
     }
+    
+    // Check if starts with valid Indian mobile prefix (6, 7, 8, or 9)
+    const firstDigit = digitsOnly.charAt(0);
+    if (!['6', '7', '8', '9'].includes(firstDigit)) {
+      return 'Invalid Indian mobile number. Must start with 6, 7, 8, or 9';
+    }
+    
     return undefined;
   }, []);
 
   // Debounced loan amount change handler
   const handleLoanAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value === '' ? 0 : Number(e.target.value);
-    setLoanAmount(value);
+    const value = e.target.value;
     
-    // Only validate if there's a value
-    if (value > 0) {
-      const error = validateLoanAmount(Number(value));
-      setValidationErrors(prev => ({ ...prev, loanAmount: error }));
-    } else {
-      setValidationErrors(prev => ({ ...prev, loanAmount: undefined }));
+    // Prevent negative values and only allow digits
+    if (value.startsWith('-')) {
+      return; // Don't update if negative
     }
-  }, [validateLoanAmount]);
+    
+    // Only allow numbers and empty string
+    if (value === '' || /^\d+$/.test(value)) {
+      const numValue = value === '' ? 0 : Number(value);
+      
+      // Auto-set service type to Custom if no service type selected and user enters amount
+      if (!loanServiceType && numValue > 0) {
+        setLoanServiceType('custom');
+      }
+      
+      setLoanAmount(numValue);
+      
+      // Only validate if there's a value
+      if (numValue > 0) {
+        const error = validateLoanAmount(Number(numValue));
+        setValidationErrors(prev => ({ ...prev, loanAmount: error }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, loanAmount: undefined }));
+      }
+    }
+  }, [validateLoanAmount, loanServiceType]);
+
+  // Prevent minus key and other non-numeric keys
+  const handleLoanAmountKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow: backspace, delete, tab, escape, enter, numbers, arrow keys, home, end
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+    
+    if (!allowedKeys.includes(e.key) && !/^\d$/.test(e.key)) {
+      e.preventDefault();
+    }
+  }, []);
+
+  // Handle phone number change with validation
+  const handlePhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Only allow digits
+    const digitsOnly = value.replace(/\D/g, '');
+    
+    // Update form value
+    setLeadForm({ ...leadForm, phone: digitsOnly });
+    
+    // Real-time validation
+    const error = validatePhone(digitsOnly);
+    setPhoneValidationError(error || '');
+    
+    // Update main validation errors
+    setValidationErrors(prev => ({ ...prev, phone: error }));
+  }, [validatePhone]);
 
   const handleInterestRateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
@@ -406,9 +649,12 @@ export default function EMICalculator() {
     
     setValidationErrors(newErrors);
     
-    // If there are errors, don't submit
-    if (nameError || emailError || phoneError) {
+    // If there are errors or terms not agreed, don't submit
+    if (nameError || emailError || phoneError || !agreedToTerms) {
       console.log('Validation errors:', newErrors);
+      if (!agreedToTerms) {
+        console.log('Terms not agreed');
+      }
       return;
     }
     
@@ -455,12 +701,15 @@ export default function EMICalculator() {
         setShowSuccess(true);
         setHasSubmittedForm(true); // Mark form as submitted
         
-        // Hide form and show schedule after 3 seconds
+        // Save to localStorage to remember user has submitted form
+        localStorage.setItem('thome_emi_form_submitted', 'true');
+        
+        // Hide form and show EMI calculator after 3 seconds
         setTimeout(() => {
-          console.log('Hiding loader and showing schedule');
+          console.log('Hiding loader and showing EMI calculator');
           setShowLeadForm(false);
           setShowLoader(false);
-          setTimeout(() => setShowSchedule(true), 300);
+          setShowEMICalculator(true);
           // Reset form
           setLeadForm({ name: '', email: '', phone: '', countryCode: '+91', service: '', message: '' });
           setValidationErrors({});
@@ -567,6 +816,7 @@ body {
     background: white;
     border-radius: 50%;
     padding: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Title */
@@ -644,7 +894,7 @@ body {
 
 .social-links {
     display: flex;
-    gap: 30px;
+    gap: 80px;
     align-items: center;
 }
 
@@ -670,6 +920,22 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
+.social-icon.youtube {
+    background: #FF0000;
+}
+
+.social-icon.instagram {
+    background: linear-gradient(45deg, #F58529, #DD2A7B, #8134AF, #515BD4);
+}
+
+.social-icon.facebook {
+    background: #1877F2;
+}
+
+.social-icon.linkedin {
+    background: #0077B5;
+}
+
 .social-icon svg {
     width: 28px;
     height: 28px;
@@ -692,7 +958,7 @@ body {
 
 .qr-title {
     font-size: 12px;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
     color: #fff;
 }
 
@@ -700,9 +966,10 @@ body {
     width: 70px;
     height: 70px;
     background: white;
-    padding: 5px;
-    border-radius: 5px;
+    padding: 8px;
+    border-radius: 8px;
     margin: 0 auto;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .whatsapp-number {
@@ -891,12 +1158,12 @@ body {
     <div class="footer">
         <div class="footer-content">
             <div class="social-links left">
-                <a href="https://www.youtube.com/@T-HomeFintech" class="social-icon" title="YouTube">
+                <a href="https://www.youtube.com/@T-HomeFintech" class="social-icon youtube" title="YouTube">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
                     </svg>
                 </a>
-                <a href="https://www.instagram.com/thomefintech" class="social-icon" title="Instagram">
+                <a href="https://www.instagram.com/thomefintech" class="social-icon instagram" title="Instagram">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zM5.838 12a6.162 6.162 0 1 1 12.324 0 6.162 6.162 0 0 1-12.324 0zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm4.965-10.405a1.44 1.44 0 1 1 2.881.001 1.44 1.44 0 0 1-2.881-.001z"/>
                     </svg>
@@ -909,12 +1176,12 @@ body {
             </div>
             
             <div class="social-links right">
-                <a href="https://www.facebook.com/people/T-Home/61571992704350/" class="social-icon" title="Facebook">
+                <a href="https://www.facebook.com/people/T-Home/61571992704350/" class="social-icon facebook" title="Facebook">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
                 </a>
-                <a href="https://www.linkedin.com/company/thomefintech" class="social-icon" title="LinkedIn">
+                <a href="https://www.linkedin.com/company/thomefintech" class="social-icon linkedin" title="LinkedIn">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                     </svg>
@@ -1254,6 +1521,23 @@ body {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 relative overflow-hidden">
+        {/* Custom CSS for scrolling text animation */}
+        <style jsx>{`
+          @keyframes scrollText {
+            0% {
+              transform: translateX(100%);
+            }
+            100% {
+              transform: translateX(-100%);
+            }
+          }
+          
+          .animate-scroll-text {
+            animation: scrollText 15s linear infinite;
+            display: inline-block;
+          }
+        `}</style>
+        
         {/* Decorative gradient overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-transparent via-blue-100/20 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-100/20 to-transparent"></div>
@@ -1348,6 +1632,8 @@ body {
           T-Homes EMI Checker + Amortization Schedule
         </motion.h1>
 
+        {/* EMI Calculator Form - Only shown after contact form submission */}
+        {showEMICalculator && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
           {/* Left Column - Input Form */}
           <motion.div 
@@ -1400,6 +1686,58 @@ body {
             </div>
             <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-gray-800">Loan Details</h2>
             
+            {/* RBI Guidelines Notice */}
+            {hasEnteredLoanDetails && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="mb-6 sm:mb-8 overflow-hidden"
+              >
+                <div className="whitespace-nowrap animate-scroll-text">
+                  <p className="text-sm text-red-600 font-medium">
+                    All loan amounts, interest rates, and tenure limits are set as per RBI guidelines and standard banking rules in India
+                  </p>
+                </div>
+              </motion.div>
+            )}
+            
+            {/* Service Type */}
+            <div className="mb-6 sm:mb-8">
+              <label htmlFor="loanServiceType" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Service Type</label>
+              <div className="relative">
+                <select
+                  id="loanServiceType"
+                  value={loanServiceType}
+                  onChange={(e) => {
+                    handleServiceTypeChange(e.target.value);
+                  }}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onFocus={() => setIsDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base appearance-none cursor-pointer"
+                >
+                  <option value="">Select Service Type</option>
+                  <option value="home loan">Home Loan</option>
+                  <option value="personal loan">Personal Loan</option>
+                  <option value="car loan">Car Loan</option>
+                  <option value="educational loan">Educational Loan</option>
+                  <option value="mortgage loan">Mortgage Loan</option>
+                  <option value="loan against property">Loan Against Property</option>
+                  <option value="custom">Custom</option>
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <svg 
+                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
             {/* Loan Amount */}
             <div className="mb-6 sm:mb-8">
               <label htmlFor="loanAmount" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Loan Amount (₹)</label>
@@ -1407,9 +1745,15 @@ body {
                 <input
                   id="loanAmount"
                   type="number"
+                  min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount : 1}
+                  max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxAmount : 1000000000}
                   value={loanAmount || ''}
                   onChange={handleLoanAmountChange}
-                  min="0"
+                  onKeyPress={(e) => {
+                    if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="Enter loan amount"
                   aria-label="Loan amount in rupees"
                   aria-describedby="loanAmount-error"
@@ -1421,14 +1765,26 @@ body {
                 <div className="mt-4 relative">
                   <input
                     type="range"
-                    min="10000"
-                    max="10000000"
+                    min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount : 1}
+                    max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxAmount : 10000000}
                     step="1000"
-                    value={loanAmount || 0}
+                    value={loanAmount || (loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount : 1)}
                     onChange={handleLoanAmountChange}
                     className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider-modern loan-slider"
                     style={{
-                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${loanAmount ? (loanAmount - 10000) / (10000000 - 10000) * 100 : 0}%, #e5e7eb ${loanAmount ? (loanAmount - 10000) / (10000000 - 10000) * 100 : 0}%, #e5e7eb 100%)`
+                      background: loanServiceType && loanServiceType in loanThresholds 
+                        ? (() => {
+                            const currentAmount = loanAmount || loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount;
+                            const minAmount = loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount;
+                            const maxAmount = loanThresholds[loanServiceType as keyof typeof loanThresholds].maxAmount;
+                            const percentage = ((currentAmount - minAmount) / (maxAmount - minAmount)) * 100;
+                            return `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
+                        : (() => {
+                            const currentAmount = loanAmount || 1;
+                            const percentage = ((currentAmount - 1) / (10000000 - 1)) * 100;
+                            return `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
                     }}
                   />
                 </div>
@@ -1441,29 +1797,43 @@ body {
               <div className="relative">
                 <input
                   id="interestRate"
-                  name="interestRate"
                   type="number"
                   value={interestRate}
                   onChange={handleInterestRateChange}
+                  min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minInterest : 0}
+                  max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxInterest : 20}
                   step="0.1"
-                  min="0"
-                  max="20"
+                  placeholder="Enter interest rate"
+                  aria-label="Annual interest rate"
+                  aria-describedby="interestRate-error"
                   className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border ${validationErrors.interestRate ? 'border-red-400' : 'border-gray-300'} text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 ${validationErrors.interestRate ? 'focus:ring-red-400' : 'focus:ring-blue-400'} focus:border-transparent transition-all duration-300 text-sm sm:text-base`}
                 />
                 {validationErrors.interestRate && (
-                  <p className="text-red-400 text-xs mt-2">{validationErrors.interestRate}</p>
+                  <p id="interestRate-error" className="text-red-400 text-xs mt-2" role="alert">{validationErrors.interestRate}</p>
                 )}
                 <div className="mt-4 relative">
                   <input
                     type="range"
-                    min="1"
-                    max="20"
+                    min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minInterest : 0}
+                    max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxInterest : 20}
                     step="0.1"
-                    value={interestRate}
+                    value={interestRate || (loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minInterest : 0)}
                     onChange={handleInterestRateChange}
                     className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider-modern interest-slider"
                     style={{
-                      background: `linear-gradient(to right, #D2232A 0%, #D2232A ${((interestRate - 1) / (20 - 1)) * 100}%, #e5e7eb ${((interestRate - 1) / (20 - 1)) * 100}%, #e5e7eb 100%)`
+                      background: loanServiceType && loanServiceType in loanThresholds
+                        ? (() => {
+                            const currentRate = interestRate || loanThresholds[loanServiceType as keyof typeof loanThresholds].minInterest;
+                            const minRate = loanThresholds[loanServiceType as keyof typeof loanThresholds].minInterest;
+                            const maxRate = loanThresholds[loanServiceType as keyof typeof loanThresholds].maxInterest;
+                            const percentage = ((currentRate - minRate) / (maxRate - minRate)) * 100;
+                            return `linear-gradient(to right, #dc2626 0%, #dc2626 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
+                        : (() => {
+                            const currentRate = interestRate || 0;
+                            const percentage = (currentRate / 20) * 100;
+                            return `linear-gradient(to right, #dc2626 0%, #dc2626 ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
                     }}
                   />
                 </div>
@@ -1472,64 +1842,46 @@ body {
 
             {/* Tenure */}
             <div className="mb-6 sm:mb-8">
-              <label htmlFor="tenure" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Tenure (Years)</label>
+              <label htmlFor="tenure" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Loan Tenure (Years)</label>
               <div className="relative">
                 <input
                   id="tenure"
-                  name="tenure"
                   type="number"
                   value={tenure}
                   onChange={handleTenureChange}
-                  min="0"
-                  max="30"
+                  min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minTenure : 0}
+                  max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxTenure : 30}
+                  placeholder="Enter tenure"
+                  aria-label="Loan tenure in years"
+                  aria-describedby="tenure-error"
                   className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border ${validationErrors.tenure ? 'border-red-400' : 'border-gray-300'} text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 ${validationErrors.tenure ? 'focus:ring-red-400' : 'focus:ring-blue-400'} focus:border-transparent transition-all duration-300 text-sm sm:text-base`}
                 />
                 {validationErrors.tenure && (
-                  <p className="text-red-400 text-xs mt-2">{validationErrors.tenure}</p>
+                  <p id="tenure-error" className="text-red-400 text-xs mt-2" role="alert">{validationErrors.tenure}</p>
                 )}
                 <div className="mt-4 relative">
                   <input
                     type="range"
-                    min="1"
-                    max="30"
-                    value={tenure}
+                    min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minTenure : 0}
+                    max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxTenure : 30}
+                    step="1"
+                    value={tenure || (loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minTenure : 0)}
                     onChange={handleTenureChange}
                     className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider-modern tenure-slider"
                     style={{
-                      background: `linear-gradient(to right, #2563eb 0%, #2563eb ${((tenure - 1) / (30 - 1)) * 100}%, #e5e7eb ${((tenure - 1) / (30 - 1)) * 100}%, #e5e7eb 100%)`
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Months */}
-            <div className="mb-6 sm:mb-8">
-              <label htmlFor="additionalMonths" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Additional Months</label>
-              <div className="relative">
-                <input
-                  id="additionalMonths"
-                  name="additionalMonths"
-                  type="number"
-                  value={additionalMonths}
-                  onChange={handleAdditionalMonthsChange}
-                  min="0"
-                  max="12"
-                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border ${validationErrors.additionalMonths ? 'border-red-400' : 'border-gray-300'} text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 ${validationErrors.additionalMonths ? 'focus:ring-red-400' : 'focus:ring-blue-400'} focus:border-transparent transition-all duration-300 text-sm sm:text-base`}
-                />
-                {validationErrors.additionalMonths && (
-                  <p className="text-red-400 text-xs mt-2">{validationErrors.additionalMonths}</p>
-                )}
-                <div className="mt-4 relative">
-                  <input
-                    type="range"
-                    min="0"
-                    max="12"
-                    value={additionalMonths}
-                    onChange={handleAdditionalMonthsChange}
-                    className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider-modern months-slider"
-                    style={{
-                      background: `linear-gradient(to right, #1d4ed8 0%, #1d4ed8 ${(additionalMonths / 12) * 100}%, #e5e7eb ${(additionalMonths / 12) * 100}%, #e5e7eb 100%)`
+                      background: loanServiceType && loanServiceType in loanThresholds
+                        ? (() => {
+                            const currentTenure = tenure || loanThresholds[loanServiceType as keyof typeof loanThresholds].minTenure;
+                            const minTenure = loanThresholds[loanServiceType as keyof typeof loanThresholds].minTenure;
+                            const maxTenure = loanThresholds[loanServiceType as keyof typeof loanThresholds].maxTenure;
+                            const percentage = ((currentTenure - minTenure) / (maxTenure - minTenure)) * 100;
+                            return `linear-gradient(to right, #2563eb 0%, #2563eb ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
+                        : (() => {
+                            const currentTenure = tenure || 0;
+                            const percentage = (currentTenure / 30) * 100;
+                            return `linear-gradient(to right, #2563eb 0%, #2563eb ${percentage}%, #e5e7eb ${percentage}%, #e5e7eb 100%)`;
+                          })()
                     }}
                   />
                 </div>
@@ -1541,28 +1893,105 @@ body {
               <label htmlFor="startDate" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Start Date</label>
               <input
                 id="startDate"
-                name="startDate"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
               />
             </div>
 
             {/* Payment Frequency */}
             <div className="mb-6 sm:mb-8">
-              <label htmlFor="paymentFrequency" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Payment Frequency</label>
-              <select
-                id="paymentFrequency"
-                name="paymentFrequency"
-                value={paymentFrequency}
-                onChange={(e) => setPaymentFrequency(e.target.value as 'monthly' | 'quarterly' | 'half-yearly')}
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-              >
-                <option value="monthly" className="bg-white">Monthly</option>
-                <option value="quarterly" className="bg-white">Quarterly</option>
-                <option value="half-yearly" className="bg-white">Half-yearly</option>
-              </select>
+              <label className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Payment Frequency</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['monthly', 'quarterly', 'half-yearly'] as const).map((freq) => (
+                  <motion.button
+                    key={freq}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setPaymentFrequency(freq)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      paymentFrequency === freq
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {freq.charAt(0).toUpperCase() + freq.slice(1).replace('-', ' ')}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Confused to check your EMI Health</label>
+            </div>
+
+            {/* EMI Health Check */}
+            <div className="mb-6 sm:mb-8 bg-gray-50 p-4 sm:p-6 rounded-xl border border-gray-200">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center justify-center">
+                  <span className="mr-2">🏥</span>
+                  Check Here with us!!
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="relative">
+                  <label htmlFor="monthlyIncome" className="block text-gray-700 mb-2 font-medium text-sm">Net Monthly Income (₹)</label>
+                  <div className="relative">
+                    <input
+                      id="monthlyIncome"
+                      type="number"
+                      min="0"
+                      value={monthlyIncome || ''}
+                      onChange={handleMonthlyIncomeChange}
+                      onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
+                          e.preventDefault();
+                        }
+                      }}
+                      placeholder="Enter net monthly income"
+                      className={`w-full px-3 py-2 rounded-lg bg-white border text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm ${
+                        monthlyIncome > 0 
+                          ? 'border-green-400 focus:ring-green-400' 
+                          : 'border-gray-300 focus:ring-blue-400'
+                      }`}
+                    />
+                    {monthlyIncome > 0 && (
+                      <div className="absolute right-3 top-3">
+                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="relative">
+                  <label htmlFor="existingEMIs" className="block text-gray-700 mb-2 font-medium text-sm">Net EMI Paying (₹)</label>
+                  <div className="relative">
+                    <input
+                      id="existingEMIs"
+                      type="number"
+                      min="0"
+                      value={existingEMIs || ''}
+                      onChange={handleExistingEMIsChange}
+                      onKeyPress={(e) => {
+                        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
+                          e.preventDefault();
+                        }
+                      }}
+                      placeholder="Enter existing EMI amounts"
+                      className={`w-full px-3 py-2 rounded-lg bg-white border text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 text-sm ${
+                        existingEMIs > 0 
+                          ? 'border-green-400 focus:ring-green-400' 
+                          : 'border-gray-300 focus:ring-blue-400'
+                      }`}
+                    />
+                    {existingEMIs > 0 && (
+                      <div className="absolute right-3 top-3">
+                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
 
@@ -1617,7 +2046,7 @@ body {
               style={{ filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.2))' }}
             >
               <h3 className="text-xl font-semibold mb-4 text-black">
-                {!loanAmount ? 'Loan Amortization (Example)' : 'Loan Amortization'}
+                {!loanAmount ? 'Principal vs Interest (Example)' : 'Principal vs Interest'}
               </h3>
               <div className="relative h-64">
                 <Custom3DDonut data={!loanAmount ? [
@@ -1785,8 +2214,70 @@ body {
               </motion.div>
             )}
 
+            {/* EMI Stress Score Display */}
+            <div className="mt-8 mb-8 sm:mt-12 sm:mb-8 bg-white p-6 sm:p-8 rounded-xl border border-gray-200 shadow-2xl min-h-[120px]">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                <span className="mr-2">🧠</span>
+                Your EMI Stress Level:
+                {monthlyIncome > 0 && existingEMIs > 0 && emiData && (
+                  <span className={`ml-2 font-bold ${
+                    ((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 
+                      ? 'text-green-600' 
+                      : ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 
+                        ? 'text-yellow-600' 
+                        : 'text-red-600'
+                  }`}>
+                    {((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 
+                      ? 'Safe 🟢' 
+                      : ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 
+                        ? 'Manageable 🟡' 
+                        : 'Risky 🔴'
+                    }
+                  </span>
+                )}
+              </h3>
+              {monthlyIncome > 0 && existingEMIs > 0 && emiData && (
+                <div className="text-sm text-gray-600">
+                  EMI Ratio: {(((emiData.emi + existingEMIs) / monthlyIncome) * 100).toFixed(1)}%
+                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 < 30 && (
+                    <span className="text-green-600 ml-2">• Excellent financial health!</span>
+                  )}
+                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 >= 30 && ((emiData.emi + existingEMIs) / monthlyIncome) * 100 <= 45 && (
+                    <span className="text-yellow-600 ml-2">• Consider reducing loan amount</span>
+                  )}
+                  {((emiData.emi + existingEMIs) / monthlyIncome) * 100 > 45 && (
+                    <span className="text-red-600 ml-2">• High debt burden - review carefully</span>
+                  )}
+                </div>
+              )}
+              {!(monthlyIncome > 0 && existingEMIs > 0) && (
+                <div className="text-sm text-gray-400 italic">
+                  Enter your monthly income and existing EMIs to see your EMI stress level
+                </div>
+              )}
+            </div>
+
           </motion.div>
         </div>
+        )}
+
+        {/* Calculate Full Schedule Button - Outside Form */}
+        {showEMICalculator && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mt-8 mb-8"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleCalculateFullSchedule}
+              className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-300 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900"
+            >
+              Calculate Full Schedule
+            </motion.button>
+          </motion.div>
+        )}
 
         {/* Loader Component */}
         <AnimatePresence>
@@ -1829,22 +2320,40 @@ body {
         </AnimatePresence>
 
         {/* Calculate Button */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mt-8"
-        >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCalculateFullSchedule}
-            className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-300 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900"
-          >
-            Calculate Full Schedule
-          </motion.button>
-        </motion.div>
+        {/* Loader Component */}
+        <AnimatePresence>
+          {showLoader && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                className="bg-white rounded-2xl p-8 shadow-2xl max-w-md mx-4"
+              >
+                <div className="text-center">
+                  <img 
+                    src="/images/logo/image.png" 
+                    alt="T-Home Logo" 
+                    className="h-16 w-16 mx-auto mb-4 rounded-[50%]"
+                  />
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                    {loaderMessage}
+                  </h3>
+                  {showSuccess && (
+                    <p className="text-green-600 mt-2">Your information has been submitted successfully!</p>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Contact Form - Only shown after Calculate button */}
+        {/* Contact Form - Only shown on page load and when not showing schedule */}
         <AnimatePresence>
           {showLeadForm && !showSchedule && (
             <motion.div
@@ -1859,10 +2368,24 @@ body {
                 className="bg-white/90 backdrop-blur-lg rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-xl max-w-4xl mx-auto"
               >
                 <h3 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-gray-800 text-center">Contact Us for Your Loan Requirements</h3>
+                
+                {/* Security Badge */}
+                <motion.div 
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                  className="flex items-center justify-center mb-6 sm:mb-8 text-gray-600 text-sm"
+                >
+                  <span className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-full border border-green-200">
+                    <span className="text-green-600">🛡️</span>
+                    <span className="text-xs sm:text-sm">256-bit SSL secured • No data sharing • No spam calls • Used only for EMI calculation assistance</span>
+                  </span>
+                </motion.div>
+                
                 <form onSubmit={handleLeadSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label htmlFor="leadName" className="block text-gray-700 mb-2 font-medium text-sm sm:text-base">Name</label>
+                      <label htmlFor="leadName" className="block text-gray-700 mb-2 font-medium text-sm sm:text-base">Fullname</label>
                       <input
                         id="leadName"
                         name="leadName"
@@ -1898,31 +2421,26 @@ body {
                     <div>
                       <label htmlFor="leadPhone" className="block text-gray-700 mb-2 font-medium text-sm sm:text-base">Phone</label>
                       <div className="flex gap-2">
-                        <input
-                          id="leadPhone"
-                          name="leadPhone"
-                          type="text"
-                          value={leadForm.countryCode}
-                          onChange={(e) => setLeadForm({ ...leadForm, countryCode: e.target.value })}
-                          className="w-24 px-3 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                          placeholder="+91"
-                          maxLength={5}
-                          required
-                        />
+                        {/* Static +91 country code */}
+                        <div className="w-24 px-3 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-gray-100 border border-gray-300 text-gray-800 flex items-center justify-center font-medium text-sm sm:text-base">
+                          +91
+                        </div>
                         <input
                           id="leadPhoneNumber"
                           name="leadPhoneNumber"
                           type="tel"
                           value={leadForm.phone}
-                          onChange={(e) => setLeadForm({ ...leadForm, phone: e.target.value })}
+                          onChange={handlePhoneChange}
                           className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl bg-white border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                          placeholder="12345 67890"
+                          placeholder="98765 43210"
                           maxLength={10}
                           required
                         />
                       </div>
-                      {validationErrors.phone && (
-                        <p className="text-red-400 text-xs mt-2">{validationErrors.phone}</p>
+                      {(validationErrors.phone || phoneValidationError) && (
+                        <p className="text-red-400 text-xs mt-2">
+                          {validationErrors.phone || phoneValidationError}
+                        </p>
                       )}
                     </div>
                     <div>
@@ -1956,6 +2474,42 @@ body {
                       placeholder="Tell us about your loan requirements..."
                     ></textarea>
                   </div>
+                  
+                  {/* Terms and Conditions Checkbox */}
+                  <div className="md:col-span-2">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={(e) => setAgreedToTerms(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        required
+                      />
+                      <span className="text-sm text-gray-700 leading-relaxed">
+                        <span className="text-red-500">*</span>{' '}
+                        I agree to the{' '}
+                        <a 
+                          href="https://thome.co.in/privacy-policy/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline font-medium"
+                        >
+                          Privacy Policy
+                        </a>
+                        {' '}and{' '}
+                        <a 
+                          href="https://thome.co.in/terms-and-conditions/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 underline font-medium"
+                        >
+                          Terms & Conditions
+                        </a>
+                        {' '}of T-Home Fintech.
+                      </span>
+                    </label>
+                  </div>
+                  
                   <div className="md:col-span-2">
                     <motion.button
                       type="submit"
