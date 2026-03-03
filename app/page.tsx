@@ -361,14 +361,24 @@ export default function EMICalculator() {
   // Recalculate EMI when inputs change with debouncing
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (loanAmount > 0) {
+      // Check for any validation errors before calculating EMI
+      const hasValidationErrors = validationErrors.loanAmount || 
+                              validationErrors.interestRate || 
+                              validationErrors.tenure || 
+                              validationErrors.additionalMonths;
+      
+      // Only calculate EMI if loan amount is valid and no validation errors exist
+      if (loanAmount > 0 && !hasValidationErrors) {
         setCurrentPage(1);
         calculateEMI();
+      } else if (hasValidationErrors) {
+        // Clear EMI data if there are any validation errors
+        setEMIData(null);
       }
     }, 300); // 300ms debounce
     
     return () => clearTimeout(timer);
-  }, [loanAmount, interestRate, tenure, additionalMonths, paymentFrequency]);
+  }, [loanAmount, interestRate, tenure, additionalMonths, paymentFrequency, validationErrors]);
 
   // Utility function for precise rounding
   const roundToTwo = (num: number): number => {
@@ -377,8 +387,14 @@ export default function EMICalculator() {
 
   const calculateEMI = useCallback(() => {
     try {
-      // Skip calculation if loan amount is not valid
+      // Skip calculation if loan amount is not valid or has validation errors
       if (!loanAmount || (typeof loanAmount === 'string' && loanAmount === '')) {
+        setEMIData(null);
+        return;
+      }
+      
+      // Check for any validation errors before calculating
+      if (validationErrors.loanAmount || validationErrors.interestRate || validationErrors.tenure || validationErrors.additionalMonths) {
         setEMIData(null);
         return;
       }
@@ -496,7 +512,7 @@ export default function EMICalculator() {
       setEMIData(null);
       // Could show user-friendly error message here
     }
-  }, [loanAmount, interestRate, tenure, additionalMonths, paymentFrequency, startDate]);
+  }, [loanAmount, interestRate, tenure, additionalMonths, paymentFrequency, startDate, validationErrors]);
 
   // Helper function to get monthly equivalent EMI for stress calculation
   const getMonthlyEquivalentEMI = useCallback(() => {
@@ -545,13 +561,14 @@ export default function EMICalculator() {
     }
     
     // Check thresholds based on service type
-    if (loanServiceType && loanServiceType in loanThresholds) {
-      const thresholds = loanThresholds[loanServiceType as keyof typeof loanThresholds];
+    const currentServiceType = loanServiceType || 'custom'; // Default to custom if no type selected
+    if (currentServiceType && currentServiceType in loanThresholds) {
+      const thresholds = loanThresholds[currentServiceType as keyof typeof loanThresholds];
       if (value < thresholds.minAmount) {
-        return `Minimum loan amount for ${loanServiceType} is ₹${thresholds.minAmount.toLocaleString('en-IN')}`;
+        return `Minimum loan amount for ${currentServiceType} is ₹${thresholds.minAmount.toLocaleString('en-IN')}`;
       }
       if (value > thresholds.maxAmount) {
-        return `Maximum loan amount for ${loanServiceType} is ₹${thresholds.maxAmount.toLocaleString('en-IN')}`;
+        return `Maximum loan amount for ${currentServiceType} is ₹${thresholds.maxAmount.toLocaleString('en-IN')}`;
       }
     }
     
@@ -663,12 +680,29 @@ export default function EMICalculator() {
         setLoanServiceType('custom');
       }
       
+      // Check if value exceeds maximum or goes below minimum limit for current loan type
+      const currentServiceType = loanServiceType || (numValue > 0 ? 'custom' : null);
+      if (currentServiceType && currentServiceType in loanThresholds) {
+        const maxAmount = loanThresholds[currentServiceType as keyof typeof loanThresholds].maxAmount;
+        const minAmount = loanThresholds[currentServiceType as keyof typeof loanThresholds].minAmount;
+        if (numValue > maxAmount || numValue < minAmount) {
+          // Don't update if exceeds limits
+          return;
+        }
+      }
+      
+      // Set loan amount after validation passes
       setLoanAmount(numValue);
       
       // Only validate if there's a value
       if (numValue > 0) {
         const error = validateLoanAmount(Number(numValue));
         setValidationErrors(prev => ({ ...prev, loanAmount: error }));
+        
+        // If there's a validation error, clear EMI data immediately
+        if (error) {
+          setEMIData(null);
+        }
       } else {
         setValidationErrors(prev => ({ ...prev, loanAmount: undefined }));
       }
@@ -1563,9 +1597,14 @@ body {
     return emiData;
   }, [emiData, loanAmount]);
 
-  // Default to 50/50 split if no loan amount is entered
+  // Default to 50/50 split if no loan amount is entered or there are validation errors
   const pieData = useMemo(() => {
-    if (loanAmount <= 0) {
+    const hasValidationErrors = validationErrors.loanAmount || 
+                              validationErrors.interestRate || 
+                              validationErrors.tenure || 
+                              validationErrors.additionalMonths;
+    
+    if (loanAmount <= 0 || hasValidationErrors) {
       return [
         { name: 'Principal', value: 50, color: '#3b82f6' },
         { name: 'Interest', value: 50, color: '#f97316' }
@@ -1576,18 +1615,49 @@ body {
       { name: 'Principal', value: Number(loanAmount) || 0, color: '#3b82f6' },
       { name: 'Interest', value: emiData?.totalInterest || 0, color: '#f97316' }
     ];
-  }, [emiData, loanAmount]);
+  }, [emiData, loanAmount, validationErrors]);
 
-  const lineData = useMemo(() => emiData ? emiData.monthlyData.map(data => ({
-    month: `Month ${data.month}`,
-    principal: data.principal,
-    interest: data.interest,
-    balance: data.balance,
-    total: data.principal + data.interest
-  })) : [], [emiData]);
+  const lineData = useMemo(() => {
+    const hasValidationErrors = validationErrors.loanAmount || 
+                              validationErrors.interestRate || 
+                              validationErrors.tenure || 
+                              validationErrors.additionalMonths;
+    
+    if (hasValidationErrors || !emiData) {
+      return Array(12).fill(0).map((_, i) => ({
+        month: `Month ${i + 1}`,
+        principal: 0,
+        interest: 0,
+        balance: 0,
+        total: 0
+      }));
+    }
+    
+    return emiData.monthlyData.map(data => ({
+      month: `Month ${data.month}`,
+      principal: data.principal,
+      interest: data.interest,
+      balance: data.balance,
+      total: data.principal + data.interest
+    }));
+  }, [emiData, validationErrors]);
 
   // Prepare yearly breakdown data for stacked bar chart
-  const yearlyData = useMemo(() => emiData ? (() => {
+  const yearlyData = useMemo(() => {
+    const hasValidationErrors = validationErrors.loanAmount || 
+                              validationErrors.interestRate || 
+                              validationErrors.tenure || 
+                              validationErrors.additionalMonths;
+    
+    if (hasValidationErrors || !emiData) {
+      return Array(12).fill(0).map((_, i) => ({
+        year: `Year ${i + 1}`,
+        principal: 0,
+        interest: 0,
+        total: 0
+      }));
+    }
+    
     const years = [];
     const totalMonths = emiData.monthlyData.length;
     const yearsCount = Math.ceil(totalMonths / 12);
@@ -1613,7 +1683,7 @@ body {
     }
     
     return years;
-  })() : [], [emiData]);
+  }, [emiData, validationErrors]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-gray-50 relative overflow-hidden">
@@ -1837,15 +1907,47 @@ body {
             
             {/* Loan Amount */}
             <div className="mb-6 sm:mb-8">
-              <label htmlFor="loanAmount" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">Loan Amount (₹)</label>
+              <label htmlFor="loanAmount" className="block text-gray-700 mb-2 sm:mb-3 font-medium text-sm sm:text-base">
+                Loan Amount (₹)
+                <span className="text-xs text-gray-500 ml-2">
+                  (Min: ₹{(() => {
+                    const currentType = loanServiceType || 'custom';
+                    return loanThresholds[currentType as keyof typeof loanThresholds]?.minAmount?.toLocaleString('en-IN') || '1,000';
+                  })()} - Max: ₹{(() => {
+                    const currentType = loanServiceType || 'custom';
+                    return loanThresholds[currentType as keyof typeof loanThresholds]?.maxAmount?.toLocaleString('en-IN') || '10,00,00,000';
+                  })()})
+                </span>
+              </label>
               <div className="relative">
                 <input
                   id="loanAmount"
                   type="number"
-                  min={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount : 1}
-                  max={loanServiceType && loanServiceType in loanThresholds ? loanThresholds[loanServiceType as keyof typeof loanThresholds].maxAmount : 1000000000}
+                  min={(() => {
+                    const currentType = loanServiceType || 'custom';
+                    return loanThresholds[currentType as keyof typeof loanThresholds]?.minAmount || 1;
+                  })()}
+                  max={(() => {
+                    const currentType = loanServiceType || 'custom';
+                    return loanThresholds[currentType as keyof typeof loanThresholds]?.maxAmount || 100000000;
+                  })()}
+                  step="1000"
                   value={loanAmount || ''}
                   onChange={handleLoanAmountChange}
+                  onInput={(e) => {
+                    const target = e.target as HTMLInputElement;
+                    const currentType = loanServiceType || 'custom';
+                    const maxAmount = loanThresholds[currentType as keyof typeof loanThresholds]?.maxAmount || 100000000;
+                    const minAmount = loanThresholds[currentType as keyof typeof loanThresholds]?.minAmount || 1;
+                    
+                    // Enforce limits at input level
+                    if (Number(target.value) > maxAmount) {
+                      target.value = maxAmount.toString();
+                    }
+                    if (Number(target.value) < minAmount && target.value !== '') {
+                      target.value = minAmount.toString();
+                    }
+                  }}
                   onKeyPress={(e) => {
                     if (!/[0-9]/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete' && e.key !== 'Tab' && e.key !== 'Enter') {
                       e.preventDefault();
@@ -1859,6 +1961,27 @@ body {
                 {validationErrors.loanAmount && (
                   <p id="loanAmount-error" className="text-red-400 text-xs mt-2" role="alert">{validationErrors.loanAmount}</p>
                 )}
+                {/* Warning message when loan amount exceeds limit */}
+                {loanServiceType && loanServiceType in loanThresholds && loanAmount > 0 && (() => {
+                  const maxAmount = loanThresholds[loanServiceType as keyof typeof loanThresholds].maxAmount;
+                  const isOverLimit = loanAmount > maxAmount;
+                  return isOverLimit ? (
+                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-yellow-800 text-xs font-medium flex items-center">
+                        <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Warning: Loan amount exceeds maximum limit for {loanServiceType}
+                      </p>
+                      <p className="text-yellow-700 text-xs mt-1">
+                        Maximum allowed: ₹{maxAmount.toLocaleString('en-IN')}
+                      </p>
+                      <p className="text-yellow-600 text-xs mt-1">
+                        Please enter a value between ₹{loanThresholds[loanServiceType as keyof typeof loanThresholds].minAmount.toLocaleString('en-IN')} and ₹{maxAmount.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
                 <div className="mt-4 relative">
                   <input
                     type="range"
@@ -2214,7 +2337,7 @@ body {
                 {!loanAmount ? 'Principal vs Interest (Example)' : 'Principal vs Interest'}
               </h3>
               <div className="relative h-64">
-                <Custom3DDonut data={!loanAmount ? [
+                <Custom3DDonut data={!loanAmount || validationErrors.loanAmount || validationErrors.interestRate || validationErrors.tenure || validationErrors.additionalMonths ? [
                   { name: 'Principal', value: 50, color: '#3b82f6' },
                   { name: 'Interest', value: 50, color: '#f97316' }
                 ] : pieData} />
@@ -2222,7 +2345,7 @@ body {
             </motion.div>
 
             {/* Gradient Area Chart - Growth Visual */}
-            {true && (
+            {true && !validationErrors.loanAmount && !validationErrors.interestRate && !validationErrors.tenure && !validationErrors.additionalMonths && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2306,7 +2429,7 @@ body {
             )}
 
             {/* Stacked Bar Chart - Yearly Breakdown */}
-            {true && (
+            {true && !validationErrors.loanAmount && !validationErrors.interestRate && !validationErrors.tenure && !validationErrors.additionalMonths && (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -2384,7 +2507,7 @@ body {
               <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center">
                 <span className="mr-2">🧠</span>
                 Your EMI Stress Level:
-                {monthlyIncome > 0 && existingEMIs !== null && emiData && (
+                {monthlyIncome > 0 && existingEMIs !== null && emiData && !validationErrors.loanAmount && !validationErrors.interestRate && !validationErrors.tenure && !validationErrors.additionalMonths && (
                   <span className={`ml-2 font-bold ${
                     ((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 < 30 
                       ? 'text-green-600' 
@@ -2401,7 +2524,7 @@ body {
                   </span>
                 )}
               </h3>
-              {monthlyIncome > 0 && existingEMIs !== null && emiData && (
+              {monthlyIncome > 0 && existingEMIs !== null && emiData && !validationErrors.loanAmount && !validationErrors.interestRate && !validationErrors.tenure && !validationErrors.additionalMonths && (
                 <div className="text-sm text-gray-600">
                   EMI Ratio: {(((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100).toFixed(1)}%
                   {((getMonthlyEquivalentEMI() + existingEMIs!) / monthlyIncome) * 100 < 30 && (
@@ -2437,7 +2560,12 @@ body {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleCalculateFullSchedule}
-              className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-300 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900"
+              disabled={!!validationErrors.loanAmount || !!validationErrors.interestRate || !!validationErrors.tenure || !!validationErrors.additionalMonths}
+              className={`bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white px-8 py-4 rounded-2xl font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-300 hover:from-blue-700 hover:via-blue-800 hover:to-blue-900 ${
+                (validationErrors.loanAmount || validationErrors.interestRate || validationErrors.tenure || validationErrors.additionalMonths) 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:from-blue-700 hover:via-blue-800 hover:to-blue-900'
+              }`}
             >
               Calculate Full Schedule
             </motion.button>
@@ -2710,7 +2838,7 @@ body {
 
         {/* Amortization Schedule */}
         <AnimatePresence>
-          {showSchedule && emiData && (
+          {showSchedule && emiData && !validationErrors.loanAmount && !validationErrors.interestRate && !validationErrors.tenure && !validationErrors.additionalMonths && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

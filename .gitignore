@@ -20,6 +20,11 @@
 # production
 /build
 
+# source maps
+*.map
+.next/static/chunks/**/*.map
+.next/static/development/**/*.js
+
 # misc
 .DS_Store
 *.pem

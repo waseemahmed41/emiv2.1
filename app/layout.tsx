@@ -79,7 +79,7 @@ export const metadata: Metadata = {
 
 
 
-    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
+    'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none';",
 
 
 
@@ -92,6 +92,14 @@ export const metadata: Metadata = {
 
 
     'X-XSS-Protection': '1; mode=block',
+
+
+
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+
+
+
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 
 
 
