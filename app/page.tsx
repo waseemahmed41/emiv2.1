@@ -175,6 +175,13 @@ export default function EMICalculator() {
     }
   }, [loanAmount, interestRate, tenure]);
 
+  // Auto-set service type to Custom if no service type selected and user enters a loan amount
+  useEffect(() => {
+    if (!loanServiceType && loanAmount > 0) {
+      setLoanServiceType('custom');
+    }
+  }, [loanAmount, loanServiceType]);
+
   // Handle monthly income change
   const handleMonthlyIncomeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value === '' ? 0 : Number(e.target.value);
@@ -721,9 +728,15 @@ export default function EMICalculator() {
     // Only allow positive numbers and empty string
     if (value === '' || /^\d+$/.test(value)) {
       const numValue = value === '' ? 0 : Number(value);
+
+      // Auto-set service type to Custom if no service type selected and user enters amount
+      if (!loanServiceType && numValue > 0) {
+        setLoanServiceType('custom');
+      }
+
       setLoanAmount(numValue);
     }
-  }, []);
+  }, [loanServiceType]);
 
   // Prevent minus key and other non-numeric keys
   const handleLoanAmountKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -1594,7 +1607,8 @@ body {
       validationErrors.tenure ||
       validationErrors.additionalMonths;
 
-    if (loanAmount <= 0 || hasValidationErrors) {
+    // Reset to default if loan amount is 0, empty, or has validation errors
+    if (!loanAmount || loanAmount <= 0 || hasValidationErrors) {
       return [
         { name: 'Principal', value: 50, color: '#3b82f6' },
         { name: 'Interest', value: 50, color: '#f97316' }
@@ -1915,15 +1929,8 @@ body {
                       type="number"
                       step="1000"
                       value={loanAmount || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-
-                        // Allow free typing - no clamping or validation while typing
-                        if (value === '' || /^\d+$/.test(value)) {
-                          const numValue = value === '' ? 0 : Number(value);
-                          setLoanAmount(numValue);
-                        }
-                      }}
+                      onChange={handleLoanAmountChange}
+                      onKeyDown={handleLoanAmountKeyDown}
                       placeholder="Enter loan amount"
                       aria-label="Loan amount in rupees"
                       aria-describedby="loanAmount-error"
