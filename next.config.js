@@ -15,6 +15,7 @@ const nextConfig = {
   // Experimental features for better bundling
   experimental: {
     optimizePackageImports: ['framer-motion', 'recharts', 'three'],
+    optimizeCss: false,
   },
   
   // Turbopack configuration (empty to avoid conflicts)
